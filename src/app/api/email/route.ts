@@ -1,35 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import puppeteer from "puppeteer";
-import chromium from "@sparticuz/chromium";
 import { buildResumeHtml, type ResumeData } from "@/lib/resumeHtml";
-
-async function generatePdfBuffer(resume: ResumeData): Promise<Buffer> {
-  const html = buildResumeHtml(resume);
-
-  const browser = await puppeteer.launch({
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-    ],
-    executablePath: await chromium.executablePath(),
-    headless: true,
-  });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    const pdf = await page.pdf({
-      format: "Letter",
-      printBackground: true,
-      margin: { top: "0", bottom: "0", left: "0", right: "0" },
-    });
-    return Buffer.from(pdf);
-  } finally {
-    await browser.close();
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +10,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Resume and recipient email required" }, { status: 400 });
     }
 
-    const pdfBuffer = await generatePdfBuffer(resume);
+    // Generate HTML version of resume
+    const html = buildResumeHtml(resume);
 
     // Use provided SMTP config or fall back to env vars
     const transportConfig = smtpConfig || {
@@ -61,16 +33,18 @@ export async function POST(req: NextRequest) {
 
     const transporter = nodemailer.createTransport(transportConfig);
 
+    // Send HTML version as email body + attachment
     await transporter.sendMail({
       from: transportConfig.auth.user,
       to: recipientEmail,
       subject: `ATS-Optimized Resume - ${resume.name}`,
+      html: html,
       text: `Please find attached the ATS-optimized resume for ${resume.name}.`,
       attachments: [
         {
-          filename: "resume_optimized.pdf",
-          content: pdfBuffer,
-          contentType: "application/pdf",
+          filename: "resume_optimized.html",
+          content: html,
+          contentType: "text/html",
         },
       ],
     });
