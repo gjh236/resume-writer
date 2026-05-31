@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
 import { buildResumeHtml } from "@/lib/resumeHtml";
 
 export async function POST(req: NextRequest) {
@@ -13,16 +14,15 @@ export async function POST(req: NextRequest) {
 
     const html = buildResumeHtml(resume);
 
-    // Vercel-compatible Puppeteer launch options
     browser = await puppeteer.launch({
-      headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
-        "--disable-web-resources",
       ],
+      executablePath: await chromium.executablePath(),
+      headless: true,
     });
     const page = await browser.newPage();
 

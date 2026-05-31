@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
 
 const EXTRACT_PROMPT = `You are given the raw visible text of a job posting web page. Extract ONLY the job-posting content and return it as clean, plain text organized under these headings (omit a heading entirely if the page has no content for it):
 
@@ -20,14 +21,14 @@ Rules:
 
 async function fetchPageText(url: string): Promise<string> {
   const browser = await puppeteer.launch({
-    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
-      "--disable-web-resources",
     ],
+    executablePath: await chromium.executablePath(),
+    headless: true,
   });
   try {
     const page = await browser.newPage();

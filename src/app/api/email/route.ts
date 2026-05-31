@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
 import { buildResumeHtml, type ResumeData } from "@/lib/resumeHtml";
 
 async function generatePdfBuffer(resume: ResumeData): Promise<Buffer> {
   const html = buildResumeHtml(resume);
 
   const browser = await puppeteer.launch({
-    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
-      "--disable-web-resources",
     ],
+    executablePath: await chromium.executablePath(),
+    headless: true,
   });
   try {
     const page = await browser.newPage();
