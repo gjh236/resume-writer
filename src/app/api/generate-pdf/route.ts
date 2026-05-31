@@ -3,6 +3,7 @@ import puppeteer from "puppeteer";
 import { buildResumeHtml } from "@/lib/resumeHtml";
 
 export async function POST(req: NextRequest) {
+  let browser;
   try {
     const { resume } = await req.json();
 
@@ -12,12 +13,25 @@ export async function POST(req: NextRequest) {
 
     const html = buildResumeHtml(resume);
 
-    const browser = await puppeteer.launch({
+    // Vercel-compatible Puppeteer launch options
+    const launchOptions: any = {
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage", // Important for Vercel
+        "--disable-gpu",
+      ],
+    };
 
+    // Use executablePath for Vercel environment if available
+    if (process.env.VERCEL) {
+      launchOptions.executablePath = "/usr/bin/chromium";
+    }
+
+    browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
+
     await page.setContent(html, { waitUntil: "load" });
 
     const pdfBuffer = await page.pdf({
@@ -37,6 +51,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("PDF generation error:", err);
-    return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
+    if (browser) await browser.close().catch(() => {});
+    return NextResponse.json(
+      { error: "Failed to generate PDF", details: String(err) },
+      { status: 500 }
+    );
   }
 }
