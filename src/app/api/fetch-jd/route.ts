@@ -19,21 +19,16 @@ Rules:
 - Return plain text only (no markdown headers like ###, no JSON, no commentary). Put each section heading on its own line followed by its content.`;
 
 async function fetchPageText(url: string): Promise<string> {
-  const launchOptions: any = {
+  const browser = await puppeteer.launch({
     headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
+      "--disable-web-resources",
     ],
-  };
-
-  if (process.env.VERCEL) {
-    launchOptions.executablePath = "/usr/bin/chromium";
-  }
-
-  const browser = await puppeteer.launch(launchOptions);
+  });
   try {
     const page = await browser.newPage();
     await page.setUserAgent(

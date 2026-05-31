@@ -14,22 +14,16 @@ export async function POST(req: NextRequest) {
     const html = buildResumeHtml(resume);
 
     // Vercel-compatible Puppeteer launch options
-    const launchOptions: any = {
+    browser = await puppeteer.launch({
       headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage", // Important for Vercel
+        "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--disable-web-resources",
       ],
-    };
-
-    // Use executablePath for Vercel environment if available
-    if (process.env.VERCEL) {
-      launchOptions.executablePath = "/usr/bin/chromium";
-    }
-
-    browser = await puppeteer.launch(launchOptions);
+    });
     const page = await browser.newPage();
 
     await page.setContent(html, { waitUntil: "load" });
